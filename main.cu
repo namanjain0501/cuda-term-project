@@ -5,6 +5,11 @@ using namespace std;
 
 int main()
 {
+
+    cudaEvent_t start, stop;
+    cudaEventCreate(&start);
+    cudaEventCreate(&stop);
+
     int n,h,w,c,k,r,s;
     cout<<"input in order n h w c k r s"<<endl;
     cin>>n>>h>>w>>c>>k>>r>>s;
@@ -21,7 +26,15 @@ int main()
     for(int i=0;i<k*r*s*c;i++)
         kernels[i]=(float)rand()/(RAND_MAX);
 
+    cudaEventRecord(start);
     float *output = forward_pass(img, kernels, h, w, c, n, k, r, s);
+    cudaEventRecord(stop);
+
+    cudaEventSynchronize(stop);
+    float milliseconds = 0;
+    cudaEventElapsedTime(&milliseconds, start, stop);
+ 
+    printf("Kernel execution time: %.4f µs\n",milliseconds*1000);
 
     int h_o = h-r+1;
     int w_o = w-s+1;
