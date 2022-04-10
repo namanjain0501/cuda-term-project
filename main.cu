@@ -1,4 +1,5 @@
 #include<bits/stdc++.h>
+#include "kernel/conv.cu"
 
 using namespace std;
 
@@ -21,7 +22,7 @@ int main()
                 img[i][j][x] = (float *)malloc(c*sizeof(float));
                 for(int y=0;y<c;y++)
                 {
-                    img[i][j][x][y] = (float)rand()%256;
+                    img[i][j][x][y] = (float)(rand()%256);
                 }
             }
         }

@@ -2,14 +2,42 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 
-void apply_conv(float ****img, float ***kernels,int h,int w,int n,int k,int r,int s,float ****output);
+__global__ void apply_conv(float *img, float *kernels, int h, int w, int c, int n, int k, int r, int s, float *output)
+{
+    int h_o = h - r + 1;
+    int w_o = w - s + 1;
+
+    int x = blockDim.x * blockIdx.x + threadIdx.x; //height
+    int y = blockDim.y * blockIdx.y + threadIdx.y; //width
+    int z = blockDim.z * blockIdx.z + threadIdx.z; // kernel no.
+ 
+    if(x<h_o && y<w_o && z<k)
+    {
+        for(int i=0;i<n;i++)
+        {
+            // output[i][z][x][y] = 0;
+            output[i*k*h_o*w_o + z*h_o*w_o + x*w_o + y] = 0;
+            for(int x1=x;x1<(x+r);x1++)
+            {
+                for(int y1=y;y1<(y+s);y1++)
+                {
+                    for(int z1=0;z1<c;z1++)
+                    {
+                        output[i*k*h_o*w_o + z*h_o*w_o + x*w_o + y] += img[i*h*w*c + x1*w*c + y1*c + z1] * kernels[z*r*s*c + (x1-x)*s*c + (y1-y)*c + z1];
+                    }
+                }
+            }
+        }
+    }
+    
+}
 
 // filter size - r*s*c
 // img size - h*w*c
 // batch size - n
 // no. of filters - k
 // output size - n*k*(h-r+1)*(w-s+1)
-void forward_pass(float ****img, float ****kernels, int h, int w, int c, int n, int k, int r, int s)
+float ****forward_pass(float ****img, float ****kernels, int h, int w, int c, int n, int k, int r, int s)
 {
     int h_o = h - r + 1;
     int w_o = w - s + 1;
@@ -50,7 +78,7 @@ void forward_pass(float ****img, float ****kernels, int h, int w, int c, int n, 
 
     float *d_kernels = NULL;
     size = k*r*s*c * sizeof(float);
-    err = cudaMalloc((void **)&d_kernels, size)
+    err = cudaMalloc((void **)&d_kernels, size);
 
     if(err != cudaSuccess)
     {
@@ -79,7 +107,7 @@ void forward_pass(float ****img, float ****kernels, int h, int w, int c, int n, 
     // h_o * w_o * k
     dim3 grid((h_o+31)/32, (w_o+31)/32, k);
     dim3 block(32, 32, 1);
-    apply_conv<<<grid, block>>>(d_img, d_kernels, h, w, n, k, r, s, d_outputs);
+    apply_conv<<<grid, block>>>(d_img, d_kernels, h, w, c, n, k, r, s, d_outputs);
     err = cudaGetLastError();
 
     if (err != cudaSuccess)
@@ -125,31 +153,3 @@ void forward_pass(float ****img, float ****kernels, int h, int w, int c, int n, 
     return output;
 }
 
-__global__ void apply_conv(float ****img, float ****kernels, int h, int w, int c, int n, int k, int r, int s, float ****output)
-{
-    int h_o = h - r + 1;
-    int w_o = w - s + 1;
-
-    int x = blockDim.x * blockIdx.x + threadIdx.x; //height
-    int y = blockDim.y * blockIdx.y + threadIdx.y; //width
-    int z = blockDim.z * blockIdx.z + threadIdx.z; // kernel no.
- 
-    if(x<h_o && y<w_o && z<k)
-    {
-        for(int i=0;i<n;i++)
-        {
-            output[i][z][x][y] = 0;
-            for(int x1=x;x1<(x+r);x1++)
-            {
-                for(int y1=y;y1<(y+s);y1++)
-                {
-                    for(int z1=0;z1<c;z1++)
-                    {
-                        output[i][z][x][y] += img[i][x1][y1][z1] * kernels[z][x1-x][y1-y][z1];
-                    }
-                }
-            }
-        }
-    }
-    
-}
