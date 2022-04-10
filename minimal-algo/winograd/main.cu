@@ -81,8 +81,20 @@ int main()
         }
     }
 
-    float ****output ; 
-    apply_winograd(img, kernels, h, w, c, n, k, r, m, output);
+    cudaEvent_t start, stop;
+    cudaEventCreate(&start);
+    cudaEventCreate(&stop);
+    cudaEventRecord(start);
 
+    apply_winograd(img, kernels, h, w, c, n, k, r, m);
+
+    cudaEventRecord(stop);
+
+    cudaEventSynchronize(stop);
+    float milliseconds = 0;
+    cudaEventElapsedTime(&milliseconds, start, stop);
+
+    printf("Kernel execution time: %.4f µs\n",milliseconds*1000);
+    
     return 0;
 }

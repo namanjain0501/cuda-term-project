@@ -8,7 +8,7 @@ using namespace std;
 #define FractionsInB 2
 #define FractionsInF 3
 
-void apply_winograd(float ****img, float ***kernels,int h,int w,int n,int k,int r,float ****output);
+void apply_winograd(float ****img, float ***kernels,int h,int w,int n,int k,int r);
 float **transpose (float **A, int m, int n);
 float **matrix_mult (float **A, int m, int n, float **B, int r);
 
@@ -88,12 +88,12 @@ int compute(float ** AT , float ** A , float **BT , float **B ,float **G , float
  return ans ; 
 }
 
-void apply_winograd(float ****img, float ****kernels, int h, int w, int c, int n, int k, int r, int m, float ****output)
+void apply_winograd(float ****img, float ****kernels, int h, int w, int c, int n, int k, int r, int m)
 {
     int P = n*ceil((double)h/m)*ceil((double)w/m);  // Number of image tiles
     int alpha = m+r-1;
-    int h_o = h - r + 1;
-    int w_o = w - r + 1;
+    // int h_o = h - r + 1;
+    // int w_o = w - r + 1;
 
    float **G = (float **) malloc(4*(sizeof(float*))); 
     for (int i = 0; i < 4; i++)
