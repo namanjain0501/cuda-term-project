@@ -9,57 +9,24 @@ int main()
     cout<<"input in order n h w c k r s"<<endl;
     cin>>n>>h>>w>>c>>k>>r>>s;
 
-    cout<<"input taken"<<endl;
+    size_t size = n*h*w*c*sizeof(float);    
+    float *img = (float *)malloc(size);
 
-    // creating img of dim n * h * w * c  and randomly initialising it
-    float ****img = (float ****)malloc(n*(sizeof(float***))); 
-    for (int i = 0; i < n; i++)
-    {
-        img[i] = (float ***)malloc(h*(sizeof(float **)));
-        for(int j=0;j<h;j++)
-        {
-            img[i][j] = (float **)malloc(w*sizeof(float *));
-            for(int x=0;x<w;x++)
-            {
-                img[i][j][x] = (float *)malloc(c*sizeof(float));
-                for(int y=0;y<c;y++)
-                {
-                    img[i][j][x][y] = (float)(rand()%256);
-                }
-            }
-        }
-    }
+    for(int i=0;i<n*h*w*c;i++)
+        img[i]=1;
 
-    cout<<"img declared"<<endl;
+    size = k*r*s*c*sizeof(float);
+    float *kernels = (float *)malloc(size);
 
-    // creating kernel of dim k * r * s * c  and randomly initialising it
-    float ****kernels = (float ****)malloc(k*(sizeof(float***))); 
-    for (int i = 0; i < k; i++)
-    {
-        kernels[i] = (float ***)malloc(r*(sizeof(float **)));
-        for(int j=0;j<r;j++)
-        {
-            kernels[i][j] = (float **)malloc(s*sizeof(float *));
-            for(int x=0;x<s;x++)
-            {
-                kernels[i][j][x] = (float *)malloc(c*sizeof(float));
-                for(int y=0;y<c;y++)
-                {
-                    kernels[i][j][x][y] = (float)rand()/(RAND_MAX);
-                }
-            }
-        }
-    }
+    for(int i=0;i<k*r*s*c;i++)
+        kernels[i]=1;
 
-    cout<<"kernel declared"<<endl;
-    
-    float ****output = forward_pass(img, kernels, h, w, c, n, k, r, s);
+    float *output = forward_pass(img, kernels, h, w, c, n, k, r, s);
 
-    cout<<"output: "<<output[0][0][0][0]<<endl;
+    int h_o = h-r+1;
+    int w_o = w-s+1;
 
-    cout<<"forward_pass executed"<<endl;
-
-    float output_cpu[n][k][h-r+1][w-s+1];
+    float output_cpu[n][k][h_o][w_o];
 
     for(int i=0;i<n;i++)
     {
@@ -69,20 +36,24 @@ int main()
             {
                 for(int y=0;y<(w-s+1);y++)
                 {
+                    output_cpu[i][j][x][y]=0;
                     for(int x1=x;x1<(x+r);x1++)
                     {
                         for(int y1=y;y1<(y+s);y1++)
                         {
                             for(int z1=0;z1<c;z1++)
                             {
-                                output_cpu[i][j][x][y] += img[i][x1][y1][z1]*kernels[j][x1-x][y1-y][z1];
+                                output_cpu[i][j][x][y] += img[i*h*w*c + x1*w*c + y1*c + z1]*kernels[j*r*s*c + (x1-x)*s*c + (y1-y)*c + z1];
                             }
                         }
                     }
-                    if(fabs(output_cpu[i][j][x][y]-output[i][j][x][y])>1e-4)
+                    if(fabs(output_cpu[i][j][x][y]-output[i*k*h_o*w_o + j*h_o*w_o + x*w_o + y])>1e-2)
                     {   
-                            cout<<"error"<<endl;
-                            exit(0);
+                        cout<<"expected : "<<output_cpu[i][j][x][y]<<endl;
+                        cout<<"got: "<<output[i*k*h_o*w_o + j*h_o*w_o + x*w_o + y]<<endl;
+                        cout<<"dim : "<<i<<" "<<j<<" "<<x<<" "<<y<<endl;
+                        cout<<"error"<<endl;
+                        exit(0);
                     }
                 }
             }

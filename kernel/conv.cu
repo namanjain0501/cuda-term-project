@@ -39,31 +39,17 @@ __global__ void apply_conv(float *img, float *kernels, int h, int w, int c, int 
 // batch size - n
 // no. of filters - k
 // output size - n*k*(h-r+1)*(w-s+1)
-float ****forward_pass(float ****img, float ****kernels, int h, int w, int c, int n, int k, int r, int s)
+float *forward_pass(float *img, float *kernels, int h, int w, int c, int n, int k, int r, int s)
 {
     int h_o = h - r + 1;
     int w_o = w - s + 1;
 
-    float ****output = (float ****)malloc(n*sizeof(float ***));
-    for (int i = 0; i < n; i++)
-    {
-        output[i] = (float ***)malloc(k*sizeof(float **));
-        for (int j = 0; j < k; j++)
-        {
-            
-            output[i][j] = (float **)malloc(h_o*sizeof(float *));
-            for (int x = 0; x < h_o; x++)
-            {
-                output[i][j][x] = (float *)malloc(w_o*sizeof(float ));   
-            }
-        }
-    }
-
-    cout<<"declared output"<<endl;
+    size_t size = n*k*h_o*w_o;
+    float *output = (float *)malloc(size*sizeof(float));
 
     cudaError_t err = cudaSuccess;
     float *d_img = NULL;
-    size_t size = n*h*w*c* sizeof(float);
+    size = n*h*w*c* sizeof(float);
     err = cudaMalloc((void **)&d_img, size);
 
     if(err != cudaSuccess)
@@ -71,8 +57,6 @@ float ****forward_pass(float ****img, float ****kernels, int h, int w, int c, in
         fprintf(stderr, "Failed to allocate img memory(error code %s)!\n", cudaGetErrorString(err));
         exit(EXIT_FAILURE);
     }
-
-    cout<<"img device memory allocated"<<endl;
 
     err = cudaMemcpy(d_img, img, size, cudaMemcpyHostToDevice);
 
@@ -114,23 +98,17 @@ float ****forward_pass(float ****img, float ****kernels, int h, int w, int c, in
     dim3 grid((h_o+31)/32, (w_o+31)/32, k);
     dim3 block(32, 32, 1);
 
-    cout<<"calling kernel"<<endl;
     apply_conv<<<grid, block>>>(d_img, d_kernels, h, w, c, n, k, r, s, d_outputs);
     err = cudaGetLastError();
-
-    cout<<"kernel executed successfully"<<endl;
 
     if (err != cudaSuccess)
     {
         fprintf(stderr, "Failed to launch apply conv kernel (error code %s)!\n", cudaGetErrorString(err));
-        cout<<"kernel Failed"<<endl;
         exit(EXIT_FAILURE);
     }
 
     size = n*k*h_o*w_o * sizeof(float);
     err = cudaMemcpy(output, d_outputs, size, cudaMemcpyDeviceToHost);
-
-    cout<<"output copied"<<endl;
 
     if (err != cudaSuccess)
     {
@@ -162,8 +140,6 @@ float ****forward_pass(float ****img, float ****kernels, int h, int w, int c, in
         fprintf(stderr, "Failed to free device output vector (error code %s)!\n", cudaGetErrorString(err));
         exit(EXIT_FAILURE);
     }
-
-    cout<<"all device memory freed"<<endl;
 
     return output;
 }
