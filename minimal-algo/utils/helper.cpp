@@ -414,26 +414,18 @@ void findMatrices (float *a, int n, int r, float **AT, float **G, float **BT, fl
     int alpha = n+r-1;
     def_FdiagPlus1 (a, alpha, f);
 
-	
-	
-
     if (f[0][0] < 0) {
         for (int j = 0; j < alpha; j++) {
             f[0][j] *= -1;
         }
     }
 
-		float **A, **X, **XT, **fT, **Z, **ZT;
-	  A = newMatrix(alpha, n);
+	float **A, **X, **XT, **fT, **Z, **ZT;
+	A = newMatrix(alpha, n);
 
-		printMatrix(f, alpha, alpha);
-	cout<<"---------";
-		fT = newMatrix(alpha, alpha);
+	fT = newMatrix(alpha, alpha);
 	inverse(f, fT, alpha);
-	printMatrix(fT, alpha, alpha);
-	cout<<"----------";
-		Z = newMatrix(alpha, alpha);
-
+	Z = newMatrix(alpha, alpha);
 
     if (fractionsIn == FractionsInG) {
         def_A (a, alpha, n, A);
@@ -479,7 +471,7 @@ void findMatrices (float *a, int n, int r, float **AT, float **G, float **BT, fl
         AT = matrix_mult (YT, n, alpha, fT, alpha);
 
     } 
-		else if (fractionsIn = FractionsInB) {
+	else if (fractionsIn = FractionsInB) {
         def_A (a, alpha, n, A);
         AT = transpose(A, alpha, n);
 
@@ -497,7 +489,7 @@ void findMatrices (float *a, int n, int r, float **AT, float **G, float **BT, fl
         BT = transpose (B, alpha, alpha);
 
     } 
-		else {
+	else {
         def_A (a, alpha, n, A);
         AT = transpose(A, alpha, n);
 
@@ -516,14 +508,14 @@ void findMatrices (float *a, int n, int r, float **AT, float **G, float **BT, fl
         BT = matrix_mult (f, alpha, alpha, XT, alpha);
     }
 
-	cout<<"----------------------\n";
+	cout<<"-----------AT-----------\n";
 	printMatrix(AT, n, alpha);
 	fflush(stdout);
-	cout<<"----------------------\n";
-	printMatrix(BT, n, n);
+	cout<<"-----------BT-----------\n";
+	printMatrix(BT, alpha, alpha);
 	
-	cout<<"----------------------\n";
-	printMatrix(G, n, n);
+	cout<<"-----------G-----------\n";
+	printMatrix(G, alpha, r);
 	
 }
 
@@ -551,24 +543,8 @@ int main() {
 	G = newMatrix(m, n);
 	f = newMatrix(n, n);
 
+    cout<<"m = "<<m<<";"<<"r = "<<r<<"\n";
 	findMatrices(a, m, r, AT, G, BT, f, FractionsInG);
 
-
-	// A = newMatrix(n, m); // nxm
-	// B = newMatrix(n, n); // nxn
-
-	// cout<<"___________A__________\n";
-	// def_A(a, n, m, A);
-	// printMatrix(A,n, m);
-	// cout<<"___________AT__________\n";
-	// AT = transpose(A, n, m);
-	// printMatrix(AT, m , n);
-	// cout<<"___________B__________\n";
-	// def_B(a, n, B);
-	// printMatrix(B,n, n);
-	// cout<<"___________BT__________\n";
-	// BT = transpose(B, n, n);
-	// printMatrix(BT, n , n);
-	
 	return 0;
 }

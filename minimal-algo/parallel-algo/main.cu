@@ -1,71 +1,65 @@
 #include<bits/stdc++.h>
-#include "winc.cu"
+#include "kernel/conv.cu"
 
 using namespace std;
 
 int main()
 {
-    int n,h,w,c,k,r,m;
-    cout<<"input in order n h w c k /r m/ "<<endl;
-    cin>>n>>h>>w>>c>>k;
+    int n,h,w,c,k,r,s;
+    cout<<"input in order n h w c k r s"<<endl;
+    cin>>n>>h>>w>>c>>k>>r>>s;
 
-    r = 2 ; m = 3 ; 
+    size_t size = n*h*w*c*sizeof(float);    
+    float *img = (float *)malloc(size);
 
-    // creating img of dim n * h * w * c  and randomly initialising it
-    float ****img = (float ****)malloc(n*(sizeof(float***))); 
-    for (int i = 0; i < n; i++)
+    for(int i=0;i<n*h*w*c;i++)
+        img[i]=(float)(rand()%256);
+
+    size = k*r*s*c*sizeof(float);
+    float *kernels = (float *)malloc(size);
+
+    for(int i=0;i<k*r*s*c;i++)
+        kernels[i]=(float)rand()/(RAND_MAX);
+
+    float *output = forward_pass(img, kernels, h, w, c, n, k, r, s);
+
+    int h_o = h-r+1;
+    int w_o = w-s+1;
+
+    float output_cpu[n][k][h_o][w_o];
+
+    for(int i=0;i<n;i++)
     {
-        img[i] = (float ***)malloc(c*(sizeof(float **)));
-        for(int j=0;j<c;j++)
+        for(int j=0;j<k;j++)
         {
-            img[i][j] = (float **)malloc(h+r-1*sizeof(float *));
-            for(int x=0;x<h+r-1;x++)
+            for(int x=0;x<(h-r+1);x++)
             {
-                img[i][j][x] = (float *)malloc(w+r-1*sizeof(float));
-                for(int y=0;y<w+r-1;y++)
+                for(int y=0;y<(w-s+1);y++)
                 {
-                    if(x < (r-1) /2 || x > h+(r-1)/2 || y < (r-1)/2 || y  > w+(r-1)/2 ) {
-                        img[i][j][x][y] = 0 ; 
+                    output_cpu[i][j][x][y]=0;
+                    for(int x1=x;x1<(x+r);x1++)
+                    {
+                        for(int y1=y;y1<(y+s);y1++)
+                        {
+                            for(int z1=0;z1<c;z1++)
+                            {
+                                output_cpu[i][j][x][y] += img[i*h*w*c + x1*w*c + y1*c + z1]*kernels[j*r*s*c + (x1-x)*s*c + (y1-y)*c + z1];
+                            }
+                        }
                     }
-                    else img[i][j][x][y] = (float)(rand()%256);
-                }
-            }
-        }
-    }for (int i = 0; i < n; i++)
-    {
-        for(int j=0;j<c;j++)
-        {
-            for(int x=0;x<h+r-1;x++)
-            {
-                for(int y=0;y<w+r-1;y++)
-                {
-                    cout << img[i][j][x][y] ; 
-                }
-                cout << endl ; 
-            }
-        }
-    }
-    // creating kernel of dim k * r * s * c  and randomly initialising it
-    float ****kernels = (float ****)malloc(k*(sizeof(float***))); 
-    for (int i = 0; i < k; i++)
-    {
-        kernels[i] = (float ***)malloc(c*(sizeof(float **)));
-        for(int j=0;j<c;j++)
-        {
-            kernels[i][j] = (float **)malloc(r*sizeof(float *));
-            for(int x=0;x<s;x++)
-            {
-                kernels[i][j][x] = (float *)malloc(r*sizeof(float));
-                for(int y=0;y<r;y++)
-                {
-                    kernels[i][j][x][y] = (float)rand()/(RAND_MAX);
+                    if(fabs(output_cpu[i][j][x][y]-output[i*k*h_o*w_o + j*h_o*w_o + x*w_o + y])>1e-2)
+                    {   
+                        cout<<"expected : "<<output_cpu[i][j][x][y]<<endl;
+                        cout<<"got: "<<output[i*k*h_o*w_o + j*h_o*w_o + x*w_o + y]<<endl;
+                        cout<<"dim : "<<i<<" "<<j<<" "<<x<<" "<<y<<endl;
+                        cout<<"error"<<endl;
+                        exit(0);
+                    }
                 }
             }
         }
     }
-
-    float ****output ; 
-    // apply_winograd(img, kernels, h, w, c, n, k, r, m, output);
+    cout<<"success"<<endl;
 
     return 0;
 }

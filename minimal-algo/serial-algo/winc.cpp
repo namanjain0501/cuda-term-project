@@ -44,10 +44,10 @@ float **matrix_mult (float **A, int m, int n, float **B, int r) {
 
 float G_[4][3] = {{1,0,0} , {0.5, 0.5 , 0.5 } , {0.5 , -0.5 , 0.5 } , {0 , 0 , 1 }} ; 
 float A_[4][2] = {{1,0} , {1,1} , {1,-1} , {0,-1}} ; 
-float BT_[4][4] = {{1,0,-1,0} , {0,1,1,0} , {0,-1,1,0} , {0,1,0,-1}} ; 
+float BT_[4][4] = {{1,0,-1,0} , {0,1,1,0} , {0,-1,1,0} , {0,-1,0,1}} ; 
 float GT_[3][4] = {{1,0.5,0.5,0} , {0 , 0.5, -0.5 , 0 } , {0, 0.5 , 0.5 , 1 } } ;
 float AT_[2][4] = {{1,1,1,0} , {0 , 1,-1,-1} } ; 
-float B_[4][4] ={{1,0,0,0} , {0,1,-1,1} , {-1,1,1,0} , {0,0,0,-1}};
+float B_[4][4] ={{1,0,0,0} , {0,1,-1,-1} , {-1,1,1,0} , {0,0,0,1}};
 float ** U(int alpha , int r , float  **G , float  **GT , float ** filter) {
     
  float ** temp = matrix_mult (G,  alpha,  r, filter, r) ; 
@@ -88,7 +88,6 @@ int compute(float ** AT , float ** A , float **BT , float **B ,float **G , float
  return ans ; 
 }
 
-
 void apply_winograd(float ****img, float ****kernels, int h, int w, int c, int n, int k, int r, int m, float ****output)
 {
     int P = n*ceil((double)h/m)*ceil((double)w/m);  // Number of image tiles
@@ -112,7 +111,7 @@ void apply_winograd(float ****img, float ****kernels, int h, int w, int c, int n
             GT[i][j] = GT_[i][j] ; 
         }
     }
-    cout << cnt++ << endl ; fflush(stdout) ; //1 
+
     float **A = (float **) malloc(4*(sizeof(float*))); 
     for (int i = 0; i < 4; i++)
     {
@@ -130,7 +129,6 @@ void apply_winograd(float ****img, float ****kernels, int h, int w, int c, int n
         }
     }
     
-    cout << cnt++ << endl ;fflush(stdout) ; //2 
     float **B = (float **) malloc(4*(sizeof(float*))); 
     for (int i = 0; i < 4; i++)
     {
@@ -148,7 +146,6 @@ void apply_winograd(float ****img, float ****kernels, int h, int w, int c, int n
         }
     }
     
-    cout << cnt++ << endl ; fflush(stdout) ; //3 
     float ****Us = (float ****)malloc(k*(sizeof(float***))); 
     for (int i = 0; i < k; i++)
     {
@@ -164,9 +161,7 @@ void apply_winograd(float ****img, float ****kernels, int h, int w, int c, int n
     {
         Vs[i] = (float ***)malloc(P*(sizeof(float **)));
     }
-    
-    cout << cnt++ << endl ; fflush(stdout); //4 
-    cout << m << r << n << endl ; 
+     
     for(int i = 0 ; i  < c ; i++ ) {
         for(int  j = 0 ; j < P - 1 ; j++ ) {
             Vs[i][j] = V (alpha, B , BT , img[i][j] ); 
@@ -187,13 +182,11 @@ void apply_winograd(float ****img, float ****kernels, int h, int w, int c, int n
             }
         }
     }
-    cout << cnt++ << endl ; fflush(stdout); //5
     
     for(int i = 0 ; i < k ; i++ ) {
         for(int j = 0 ; j < P-1 ; j++ ) {
             for(int x = 0 ; x < c ; x++ ) {
                 float ** mid = matrix_mult(Us[i][x] , alpha ,  alpha , Vs[x][j] , alpha ) ; 
-                cout << "m" << m << " alpha " << alpha  << endl ; 
                 float ** left = matrix_mult(AT , m , alpha , mid , alpha ) ; //
                 float ** Y_  = matrix_mult(left , m , alpha , A , m ) ;
                 for(int ii = 0 ; ii < m ; ii++ ) {
@@ -204,7 +197,7 @@ void apply_winograd(float ****img, float ****kernels, int h, int w, int c, int n
             }
         }
     }
-    cout << cnt++ << endl ; fflush(stdout); //6
+
     for(int i = 0 ; i < k ; i++ ) {
         for(int j = 0 ; j < P -1 ; j++ ) {
             cout << "Y[" << i << "]["<< j<<"] : \n" ; 
@@ -217,6 +210,6 @@ void apply_winograd(float ****img, float ****kernels, int h, int w, int c, int n
             
         }
     }
-    cout << cnt++ << endl ; fflush(stdout); //7
+
 }
     
