@@ -564,46 +564,6 @@ __global__ void apply_winograd(float ****img, float ****kernels, int h, int w, i
     int P = n*ceil(h/m)*ceil(w/m);  // Number of image tiles
     int alpha = m+r-1;
 
-    for (int i = 0; i < k; i++) {
-        for (int j = 0; j < c; j++) {
-            // TODO
-        }
-    }
-    // TODO
-    /*int h_o = h - r + 1;
-    int w_o = w - s + 1;
-
-    int x = blockDim.x * blockIdx.x + threadIdx.x; //height
-    int y = blockDim.y * blockIdx.y + threadIdx.y; //width
-    int z = blockDim.z * blockIdx.z + threadIdx.z; // kernel no.
- 
-    if(x<h_o && y<w_o && z<k)
-    {
-        for(int i=0;i<n;i++)
-        {
-            output[i][z][x][y] = 0;
-            for(int x1=x;x1<(x+r);x1++)
-            {
-                for(int y1=y;y1<(y+s);y1++)
-                {
-                    for(int z1=0;z1<c;z1++)
-                    {
-                        output[i][z][x][y] += img[i][x1][y1][z1] * kernels[z][x1-x][y1-y][z1];
-                    }
-                }
-            }
-        }
-    }*/
-//     float *a ; 
-     
-//    float **AT;
-//    float **G ; 
-   
-//    float **BT ; 
-//    float **f ;
-//  // findMatrices (float *a, int n, int r, float **AT, float **G, float **BT, float **f, int fractionsIn = FractionsInG) {
-//     findMatriceS(a , n , r , AT , G , BT , f) ; 
-    
     float **A, **BT, **G;
      G = (float**) malloc (alpha*sizeof(float*));
         for (int i = 0; i < alpha; i++) {
@@ -628,9 +588,7 @@ __global__ void apply_winograd(float ****img, float ****kernels, int h, int w, i
     float ** AT = transpose(A , alpha , m  ) ; 
     //
     float ** B = transpose(BT , alpha , alpha ) ; 
-
-    // Y = AT[[GgGt][BTdB]]A 
-    // g = filter d = tile 
+ 
     int h_o = h - r + 1;
     int w_o = w - r + 1;
     // dim3 grid((h_o+31)/32, (w_o+31)/32, k);
