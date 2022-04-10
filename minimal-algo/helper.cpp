@@ -15,13 +15,11 @@ using namespace std;
 #define FractionsInB 2
 #define FractionsInF 3
 
-// Returns A
+// Caluclation of A
 void def_At (float *a, int m, int n, float **At);
 void def_A (float *a, int m, int n, float **A);
 
-float **transpose (float **A, int m, int n);
-float **matrix_mult (float **A, int m, int n, float **B, int r);
-void findMatrices (float *a, int n, int r, float **AT, float **G, float **BT, float **f, int fractionsIn = FractionsInG);
+// Caluclation of B
 void def_T (float *a, int n, float **T);
 long coeff_a_poly_b(int a, int b, int n);
 string repeat(string s, int n);
@@ -31,11 +29,20 @@ void def_FdiagPlus1 (float *a, int n, float **FdiagPlus1);
 void def_L (float *a, int n, float **L);
 void def_Bt (float *a, int n, float **Bt);
 void def_B (float *a, int n, float **B);
+
+
+// Matrix Operations
+float **transpose (float **A, int m, int n);
+float **matrix_mult (float **A, int m, int n, float **B, int r);
 void getCofactor(float **A, float **temp, int N, int p, int q, int n);
 void adjoint(float **A, float **adj, int N);
 bool inverse(float **A, float **inverse, int N);
 
+// Debug Functions
 void printMatrix(float **A, int m, int n);
+float** newMatrix(int m, int n) ;
+
+void findMatrices (float *a, int n, int r, float **AT, float **G, float **BT, float **f, int fractionsIn = FractionsInG);
 
 // Output Matrix At : m x n
 void def_At (float *a, int m, int n, float **At) {
@@ -54,21 +61,54 @@ void def_A (float *a, int m, int n, float **A) {
     }
 }
 
-// Output Matrix T : n x (n+1)
-void def_T (float *a, int n, float **T) {
+void printMatrix(float **A, int m, int n) {
+	int i,  j;
+	for(i=0; i<m; i++) {
+		for(j=0; j<n; j++) {
+			cout<<A[i][j]<<" ";
+		}
+		cout<<"\n";
+	}
+}
+
+// Transposes matrix A of dimensions (m x n)
+// Returns transpose of dimensions (n x m)
+float **transpose (float **A, int m, int n) {
+    float **T = (float**) malloc (n*sizeof(float*));
     for (int i = 0; i < n; i++) {
-        for (int j = 0; j < n; j++) {
-            T[i][j] = (i==j)?1:0;
+        T[i] = (float*) malloc (m*sizeof(float));
+        for (int j = 0; j < m; j++) {
+            T[i][j] = A[j][i];
         }
     }
-    for (int i = 0; i < n; i++) {
-        T[i][n] = pow(-a[i], n);
-    }
+    return T;
+}
+
+float** newMatrix(int m, int n) {
+	float** new_matrix;
+	new_matrix = (float**)malloc(m*sizeof(float*));
+	for(int i =0; i<m; i++) {
+		new_matrix[i] = (float*) malloc(n*sizeof(float));
+	}
+	return new_matrix;
+}
+
+// Output Matrix T : n x (n+1)
+void def_T (float *a, int n, float **T) {
+	
+	for (int i = 0; i < n; i++) {
+			for (int j = 0; j < n; j++) {
+					T[i][j] = (i==j)?1:0;
+			}
+	}
+	for (int i = 0; i < n; i++) {
+			T[i][n] = pow(-a[i], n);
+	}	
 }
 
 
 // Coefficient of x^a in Polynomial whose roots are 0 to n-1 except b
-long coeff_a_poly_b(int a, int b, int n) {
+long coeff_a_poly_b(float *A, int a, int b, int n) {
     // initalize roots array
     vector<int> roots;
 		string s, s1, s2;
@@ -77,13 +117,13 @@ long coeff_a_poly_b(int a, int b, int n) {
 
     for(int i = 0; i<n; i++)
       if(i!=b)
-        roots.push_back(i);
+        roots.push_back(A[i]);
 
     // string with a 1s and rest 0s
 		s1 = "a";
 	  s2 = "b";
     s1 = repeat(s1, a);
-    s2 = repeat(s2, n-1-a);
+    s2 = repeat(s2,n-1-a );
 
     sum = 0;
 
@@ -94,7 +134,7 @@ long coeff_a_poly_b(int a, int b, int n) {
     do {
 			value = 1;
 			for(int i=0; i<(n-1); i++)
-				if(s[i]=='a')
+				if(s[i]=='b')
 					value = value * roots[i];
 			sum += value;
 			// cout<<s1<<" ";
@@ -167,19 +207,33 @@ void def_L (float *a, int n, float **L) {
 			F[i] = (float*) malloc (n*sizeof(float));
 	}
 	def_F (a, n, F);
+	// cout<<"____________F___________\n";
+	// printMatrix(F, n, 1);
+	
+	float **L1, **L2;
+	int temp;
+	L1 = newMatrix(n, n);
 
-	float **L1 = (float**) malloc (n*sizeof(float*));
-	for (int i = 0; i < n; i++) {
-			L1[i] = (float*) malloc (n*sizeof(float));
-	}
-
+	// cout<<"\n";
 	for(int i = 0; i<n; i++) {
 		for(int j = 0; j<n; j++) {
-			L1[i][j] = coeff_a_poly_b(j, i, n) / (double) F[i];
+			temp = coeff_a_poly_b(a, j, i, n);
+			if(temp == 0) {
+				L1[i][j] = 0;
+			} else 
+					L1[i][j] = (float) temp / F[i][0];
+			// cout<<temp<<" ";
 		}
+		// cout<<"\n";
 	}
 
-	L = transpose(L1, n);
+	L2 = transpose(L1, n, n);
+	for(int i =0; i<n; i++) {
+		for(int j =0 ;j<n; j++) {
+			L[i][j] = L2[i][j];
+		}
+	}
+		
 }
 
 // Output Matrix Bt : n x (n+1)
@@ -189,17 +243,21 @@ void def_Bt (float *a, int n, float **Bt) {
         L[i] = (float*) malloc (n*sizeof(float));
     }
     def_L (a, n, L);
-
+	// cout<<"___________L__________\n";
+		// printMatrix(L, n , n);
+	
     float **T = (float**) malloc (n*sizeof(float*));
     for (int i = 0; i < n; i++) {
           T[i] = (float*) malloc ((n+1)*sizeof(float));
     }
     def_T (a, n, T);
+	  // cout<<"___________T__________\n";
+		// printMatrix(T, n , n+1);
 
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < n+1; j++) {
-            Bt[i][j] = 0
-            for (int k = 0; k < n+1; k++) {
+            Bt[i][j] = 0;
+            for (int k = 0; k < n; k++) {
                 Bt[i][j] += L[i][k]*T[k][j];
             }
         }
@@ -208,24 +266,12 @@ void def_Bt (float *a, int n, float **Bt) {
 
 // Output Matrix B : n x n
 void def_B (float *a, int n, float **B) {
-    def_B (a, n-1, B);
-
+    def_Bt (a, n-1, B);
+		// cout<<"___________Bt__________\n";
+		// printMatrix(B, n-1 , n);
     for (int j = 0; j < n; j++) {
         B[n-1][j] = (j==n-1)?1:0;
     }
-}
-
-// Transposes matrix A of dimensions (m x n)
-// Returns transpose of dimensions (n x m)
-float **transpose (float **A, int m, int n) {
-    float **T = (float**) malloc (n*sizeof(float*));
-    for (int i = 0; i < n; i++) {
-        T[i] = (float*) malloc (m*sizeof(float));
-        for (int j = 0; j < m; j++) {
-            T[i][j] = A[j][i];
-        }
-    }
-    return T;
 }
 
 // Multiplies matrix A of dimensions (m x n) with matrix B of dimensions (n x r)
@@ -347,7 +393,7 @@ bool inverse(float **A, float **inverse, int N) {
  
     // Find adjoint
     float **adj = (float**) malloc (N*sizeof(float*));
-    for (int i = 0; i < n; i++) {
+    for (int i = 0; i < N; i++) {
         adj[i] = (float*)  malloc (N*sizeof(float));
     }
     adjoint(A, adj, N);
@@ -362,24 +408,14 @@ bool inverse(float **A, float **inverse, int N) {
     return true;
 }
 
-void printMatrix(float **A, int m, int n) {
-	int i,  j;
-	for(i=0; i<m; i++) {
-		for(j=0; j<n; j++) {
-			cout<<A[i][j]<<" ";
-		}
-		cout<<"\n";
-	}
-}
 
 // Populates AT, G, BT and f
-void findMatrices (float *a, int n, int r, float **AT, float **G, float **BT, float **f, int fractionsIn = FractionsInG) {
+void findMatrices (float *a, int n, int r, float **AT, float **G, float **BT, float **f, int fractionsIn) {
     int alpha = n+r-1;
-    float **f = (float**) malloc (alpha*sizeof(float*));
-    for (int i = 0; i < alpha; i++) {
-        f[i] = (float*) malloc (alpha*sizeof(float));
-    }
     def_FdiagPlus1 (a, alpha, f);
+
+	
+	
 
     if (f[0][0] < 0) {
         for (int j = 0; j < alpha; j++) {
@@ -387,36 +423,32 @@ void findMatrices (float *a, int n, int r, float **AT, float **G, float **BT, fl
         }
     }
 
-    float **AT, **BT, **G;
+		float **A, **X, **XT, **fT, **Z, **ZT;
+	  A = newMatrix(alpha, n);
+
+		printMatrix(f, alpha, alpha);
+	cout<<"---------";
+		fT = newMatrix(alpha, alpha);
+	inverse(f, fT, alpha);
+	printMatrix(fT, alpha, alpha);
+	cout<<"----------";
+		Z = newMatrix(alpha, alpha);
+
+
     if (fractionsIn == FractionsInG) {
-        float **A = (float**) malloc (alpha*sizeof(float*));
-        for (int i = 0; i < alpha; i++) {
-            A[i] = (float*) malloc (n*sizeof(float));
-        }
         def_A (a, alpha, n, A);
         AT = transpose(A, alpha, n);
 
-        float **X = (float**) malloc (alpha*sizeof(float*));
-        for (int i = 0; i < alpha; i++) {
-            X[i] = (float*) malloc (r*sizeof(float));
-        }
+        X = newMatrix(alpha, r);
         def_A (a, alpha, r, X);
-        float **XT = transpose (X, alpha, r);
-        float **fT = (float**) malloc (alpha*sizeof(float*));
-        for (int i = 0; i < alpha; i++) {
-            fT[i] = (float*) malloc (alpha*sizeof(float));
-        }
-        inverse(f, fT, alpha);
+        XT = transpose (X, alpha, r);
+        
         float **Y = matrix_mult (XT, r, alpha, fT, alpha);
         G = transpose (Y, r, alpha);
 
-        float **Z = (float**) malloc (alpha*sizeof(float*));
-        for (int i = 0; i < alpha; i++) {
-            Z[i] = (float*) malloc (alpha*sizeof(float));
-        }
         def_B (a, alpha, Z);
-        float **ZT = transpose (Z, alpha, alpha);
-        BT = matrix_mult (f, alpha, alpha, ZT, alpha)
+        ZT = transpose (Z, alpha, alpha);
+        BT = matrix_mult (f, alpha, alpha, ZT, alpha);
 
     } else if (fractionsIn == FractionsInA) {
         float **X = (float**) malloc (alpha*sizeof(float*));
@@ -446,11 +478,8 @@ void findMatrices (float *a, int n, int r, float **AT, float **G, float **BT, fl
         inverse(f, fT, alpha);
         AT = matrix_mult (YT, n, alpha, fT, alpha);
 
-    } else if (fractionsIn = FractionsInB) {
-        float **A = (float**) malloc (alpha*sizeof(float*));
-        for (int i = 0; i < alpha; i++) {
-            A[i] = (float*) malloc (n*sizeof(float));
-        }
+    } 
+		else if (fractionsIn = FractionsInB) {
         def_A (a, alpha, n, A);
         AT = transpose(A, alpha, n);
 
@@ -467,11 +496,8 @@ void findMatrices (float *a, int n, int r, float **AT, float **G, float **BT, fl
         def_B (a, alpha, B);
         BT = transpose (B, alpha, alpha);
 
-    } else {
-        float **A = (float**) malloc (alpha*sizeof(float*));
-        for (int i = 0; i < alpha; i++) {
-            A[i] = (float*) malloc (n*sizeof(float));
-        }
+    } 
+		else {
         def_A (a, alpha, n, A);
         AT = transpose(A, alpha, n);
 
@@ -487,17 +513,62 @@ void findMatrices (float *a, int n, int r, float **AT, float **G, float **BT, fl
         }
         def_B (a, alpha, X);
         float **XT = transpose (X, alpha, alpha);
-        BT = matrix_mult (f, alpha, alpha, XT, alpha)
+        BT = matrix_mult (f, alpha, alpha, XT, alpha);
     }
 
-	printMatrix(AT, n, n);
+	cout<<"----------------------\n";
+	printMatrix(AT, n, alpha);
+	fflush(stdout);
+	cout<<"----------------------\n";
 	printMatrix(BT, n, n);
+	
+	cout<<"----------------------\n";
 	printMatrix(G, n, n);
 	
 }
 
 
 int main() {
-	// findMatrices (float *a, int n, int r, float **AT, float **G, float **BT, float **f, int fractionsIn = FractionsInG);
+	// For F(m,r) you must select m+r-2 polynomial interpolation points.
+	// FOR NOW HARDCODING
+
+	float *a;
+	int m, r, i, j, n;
+	m = 2, r =3;
+	n = m+r-1;
 	
+	a = (float*)malloc(n*sizeof(float));
+	a[0] = 0;
+	a[1] = 1;
+	a[2] = -1;
+
+	float **A, **AT; 
+	float **B, **BT;
+	float **G, **f;
+
+	AT = newMatrix(m, n);
+	BT = newMatrix(n, n);
+	G = newMatrix(m, n);
+	f = newMatrix(n, n);
+
+	findMatrices(a, m, r, AT, G, BT, f, FractionsInG);
+
+
+	// A = newMatrix(n, m); // nxm
+	// B = newMatrix(n, n); // nxn
+
+	// cout<<"___________A__________\n";
+	// def_A(a, n, m, A);
+	// printMatrix(A,n, m);
+	// cout<<"___________AT__________\n";
+	// AT = transpose(A, n, m);
+	// printMatrix(AT, m , n);
+	// cout<<"___________B__________\n";
+	// def_B(a, n, B);
+	// printMatrix(B,n, n);
+	// cout<<"___________BT__________\n";
+	// BT = transpose(B, n, n);
+	// printMatrix(BT, n , n);
+	
+	return 0;
 }
