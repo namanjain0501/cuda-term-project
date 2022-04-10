@@ -10,7 +10,7 @@ using namespace std;
 #define FractionsInB 2
 #define FractionsInF 3
 
-void apply_winograd(float ****img, float ***kernels,int h,int w,int n,int k,int r,int s,float ****output);
+void apply_winograd(float ****img, float ***kernels,int h,int w,int n,int k,int r,float ****output);
 float **transpose (float **A, int m, int n);
 float **matrix_mult (float **A, int m, int n, float **B, int r);
 
@@ -252,6 +252,7 @@ float **matrix_mult (float **A, int m, int n, float **B, int r);
 
 // Transposes matrix A of dimensions (m x n)
 // Returns transpose of dimensions (n x m)
+int cnt = 1  ; 
 float **transpose (float **A, int m, int n) {
     float **T = (float**) malloc (n*sizeof(float*));
     for (int i = 0; i < n; i++) {
@@ -557,7 +558,7 @@ int compute(float ** AT , float ** A , float **BT , float **B ,float **G , float
 }
 void apply_winograd(float ****img, float ****kernels, int h, int w, int c, int n, int k, int r, int m, float ****output)
 {
-    int P = n*ceil(h/m)*ceil(w/m);  // Number of image tiles
+    int P = n*ceil((double)h/m)*ceil((double)w/m);  // Number of image tiles
     int alpha = m+r-1;
 
     for (int i = 0; i < k; i++) {
@@ -640,6 +641,7 @@ void apply_winograd(float ****img, float ****kernels, int h, int w, int c, int n
             GT[i][j] = GT_[i][j] ; 
         }
     }
+    cout << cnt++ << endl ; fflush(stdout) ; //1 
     float **A = (float **) malloc(4*(sizeof(float*))); 
     for (int i = 0; i < 4; i++)
     {
@@ -656,6 +658,8 @@ void apply_winograd(float ****img, float ****kernels, int h, int w, int c, int n
             AT[i][j] = AT_[i][j] ; 
         }
     }
+    
+    cout << cnt++ << endl ;fflush(stdout) ; //2 
     float **B = (float **) malloc(4*(sizeof(float*))); 
     for (int i = 0; i < 4; i++)
     {
@@ -672,6 +676,8 @@ void apply_winograd(float ****img, float ****kernels, int h, int w, int c, int n
             BT[i][j] = BT_[i][j] ; 
         }
     }
+    
+    cout << cnt++ << endl ; fflush(stdout) ; //3 
     float ****Us = (float ****)malloc(k*(sizeof(float***))); 
     for (int i = 0; i < k; i++)
     {
@@ -687,8 +693,11 @@ void apply_winograd(float ****img, float ****kernels, int h, int w, int c, int n
     {
         Vs[i] = (float ***)malloc(P*(sizeof(float **)));
     }
+    
+    cout << cnt++ << endl ; fflush(stdout); //4 
+    cout << m << r << n << endl ; 
     for(int i = 0 ; i  < c ; i++ ) {
-        for(int  j = 0 ; j < P ; j++ ) {
+        for(int  j = 0 ; j < P - 1 ; j++ ) {
             Vs[i][j] = V (alpha, B , BT , img[i][j] ); 
         }
     }
@@ -696,21 +705,48 @@ void apply_winograd(float ****img, float ****kernels, int h, int w, int c, int n
     for (int i = 0; i < k; i++)
     {
         Y[i] = (float ***)malloc(P*(sizeof(float **)));
-        for(int j=0;j<P;j++)
+        for(int j=0;j<P-1 ;j++)
         {
             Y[i][j] = (float **)malloc((m)*sizeof(float *));
             for(int x=0;x<m;x++){
                 Y[i][j][x] = (float *)malloc((m)*sizeof(float));
+                for(int y = 0 ; y < m ; y++ ) {
+                    Y[i][j][x][y] = 0 ; 
+                }
             }
-        {
-    }
-    for(int i = 0 ; i < k ; i++ ) {
-        for(int j = 0 ; j < P ; j++ ) {
-            
-            float ** left = matrix_mult(AT , m , alpha , mid , alpha ) ; 
-            float ** Y  = matrix_mult(left , m , alpha , A , m ) ; 
         }
     }
+    cout << cnt++ << endl ; fflush(stdout); //5
+    
+    for(int i = 0 ; i < k ; i++ ) {
+        for(int j = 0 ; j < P-1 ; j++ ) {
+            for(int x = 0 ; x < c ; x++ ) {
+                float ** mid = matrix_mult(Us[i][x] , alpha ,  alpha , Vs[x][j] , alpha ) ; 
+                cout << "m" << m << " alpha " << alpha  << endl ; 
+                float ** left = matrix_mult(AT , m , alpha , mid , alpha ) ; //
+                float ** Y_  = matrix_mult(left , m , alpha , A , m ) ;
+                for(int ii = 0 ; ii < m ; ii++ ) {
+                    for(int jj = 0 ; jj < m ; jj++ ) {
+                        Y[i][j][ii][jj] += Y_[ii][jj] ; 
+                    }
+                }
+            }
+        }
+    }
+    cout << cnt++ << endl ; fflush(stdout); //6
+    for(int i = 0 ; i < k ; i++ ) {
+        for(int j = 0 ; j < P -1 ; j++ ) {
+            cout << "Y[" << i << "]["<< j<<"] : \n" ; 
+                for(int ii = 0 ; ii < m ; ii++ ) {
+                    for(int jj = 0 ; jj < m ; jj++ ) {
+                        cout << Y[i][j][ii][jj] << " " ; 
+                    }
+                    cout << endl ; 
+                }
+            
+        }
+    }
+    cout << cnt++ << endl ; fflush(stdout); //7
     // compute<<<grid, block>>>(d_img, d_kernels, h, w, n, k, r, s, d_outputs);
 }
     
