@@ -1,5 +1,5 @@
 #include<bits/stdc++.h>
-#include "kernel/conv.cu"
+#include "winc.cu"
 
 using namespace std;
 

@@ -6,6 +6,131 @@ using namespace std;
 #define M 2
 #define R 3
 
+__global__ void apply_winograd(float ****img, float ****kernels, int h, int w, int c, int n, int k, int r, int m, float ****output)
+{
+    int P = n*ceil((double)h/m)*ceil((double)w/m);  // Number of image tiles
+    int alpha = m+r-1;
+    int h_o = h - r + 1;
+    int w_o = w - r + 1;
+
+   float **G = (float **) malloc(4*(sizeof(float*))); 
+    for (int i = 0; i < 4; i++)
+    {
+        G[i] = (float *)malloc(3*(sizeof(float )));
+        for(int j = 0 ; j < 3; j++ ) {
+            G[i][j] = G_[i][j] ; 
+        }
+    }
+    float **GT = (float **) malloc(3*(sizeof(float*))); 
+    for (int i = 0; i < 3; i++)
+    {
+        GT[i] = (float *)malloc(4*(sizeof(float )));
+        for(int j = 0 ; j < 4; j++ ) {
+            GT[i][j] = GT_[i][j] ; 
+        }
+    }
+
+    float **A = (float **) malloc(4*(sizeof(float*))); 
+    for (int i = 0; i < 4; i++)
+    {
+        A[i] = (float *)malloc(2*(sizeof(float )));
+        for(int j = 0 ; j < 2; j++ ) {
+            A[i][j] = A_[i][j] ; 
+        }
+    }
+    float **AT = (float **) malloc(2*(sizeof(float*))); 
+    for (int i = 0; i < 2; i++)
+    {
+        AT[i] = (float *)malloc(4*(sizeof(float )));
+        for(int j = 0 ; j < 4; j++ ) {
+            AT[i][j] = AT_[i][j] ; 
+        }
+    }
+    
+    float **B = (float **) malloc(4*(sizeof(float*))); 
+    for (int i = 0; i < 4; i++)
+    {
+        B[i] = (float *)malloc(4*(sizeof(float )));
+        for(int j = 0 ; j < 4; j++ ) {
+            B[i][j] = B_[i][j] ; 
+        }
+    }
+    float **BT = (float **) malloc(4*(sizeof(float*))); 
+    for (int i = 0; i < 4; i++)
+    {
+        BT[i] = (float *)malloc(4*(sizeof(float )));
+        for(int j = 0 ; j < 4; j++ ) {
+            BT[i][j] = BT_[i][j] ; 
+        }
+    }
+    
+    float ****Us = (float ****)malloc(k*(sizeof(float***))); 
+    for (int i = 0; i < k; i++)
+    {
+        Us[i] = (float ***)malloc(c*(sizeof(float **)));
+    }
+    for(int i = 0 ; i  < k ; i++ ) {
+        for(int  j = 0 ; j < c ; j++ ) {
+            Us[i][j] = U (alpha, r , G , GT , kernels[i][j] ); 
+        }
+    }
+    float ****Vs = (float ****)malloc(c*(sizeof(float***))); 
+    for (int i = 0; i < c; i++)
+    {
+        Vs[i] = (float ***)malloc(P*(sizeof(float **)));
+    }
+     
+    for(int i = 0 ; i  < c ; i++ ) {
+        for(int  j = 0 ; j < P - 1 ; j++ ) {
+            Vs[i][j] = V (alpha, B , BT , img[i][j] ); 
+        }
+    }
+     float ****Y = (float ****)malloc(k*(sizeof(float***))); 
+    for (int i = 0; i < k; i++)
+    {
+        Y[i] = (float ***)malloc(P*(sizeof(float **)));
+        for(int j=0;j<P-1 ;j++)
+        {
+            Y[i][j] = (float **)malloc((m)*sizeof(float *));
+            for(int x=0;x<m;x++){
+                Y[i][j][x] = (float *)malloc((m)*sizeof(float));
+                for(int y = 0 ; y < m ; y++ ) {
+                    Y[i][j][x][y] = 0 ; 
+                }
+            }
+        }
+    }
+    
+    for(int i = 0 ; i < k ; i++ ) {
+        for(int j = 0 ; j < P-1 ; j++ ) {
+            for(int x = 0 ; x < c ; x++ ) {
+                float ** mid = matrix_mult(Us[i][x] , alpha ,  alpha , Vs[x][j] , alpha ) ; 
+                float ** left = matrix_mult(AT , m , alpha , mid , alpha ) ; //
+                float ** Y_  = matrix_mult(left , m , alpha , A , m ) ;
+                for(int ii = 0 ; ii < m ; ii++ ) {
+                    for(int jj = 0 ; jj < m ; jj++ ) {
+                        Y[i][j][ii][jj] += Y_[ii][jj] ; 
+                    }
+                }
+            }
+        }
+    }
+
+    for(int i = 0 ; i < k ; i++ ) {
+        for(int j = 0 ; j < P -1 ; j++ ) {
+            cout << "Y[" << i << "]["<< j<<"] : \n" ; 
+                for(int ii = 0 ; ii < m ; ii++ ) {
+                    for(int jj = 0 ; jj < m ; jj++ ) {
+                        cout << Y[i][j][ii][jj] << " " ; 
+                    }
+                    cout << endl ; 
+                }
+            
+        }
+    }
+
+}
+
 __global__ void apply_conv(float *img, float *kernels, int h, int w, int c, int n, int k, int r, int s, float *output)
 {
     int h_o = h - r + 1;
@@ -101,7 +226,10 @@ float *forward_pass(float *img, float *kernels, int h, int w, int c, int n, int 
         exit(EXIT_FAILURE);
     }
 
-
+    int h1;
+    int h2;
+    h1 = ceil(h_o/m);
+    h2 = ceil(w_o/m);
 
     // h_o * w_o * k
     dim3 grid((h_o+31)/32, (w_o+31)/32, k);
