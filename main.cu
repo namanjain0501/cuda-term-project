@@ -13,13 +13,13 @@ int main()
     float *img = (float *)malloc(size);
 
     for(int i=0;i<n*h*w*c;i++)
-        img[i]=1;
+        img[i]=(float)(rand()%256);
 
     size = k*r*s*c*sizeof(float);
     float *kernels = (float *)malloc(size);
 
     for(int i=0;i<k*r*s*c;i++)
-        kernels[i]=1;
+        kernels[i]=(float)rand()/(RAND_MAX);
 
     float *output = forward_pass(img, kernels, h, w, c, n, k, r, s);
 
